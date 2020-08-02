@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const User = require('mongoose').model('User')
-const {genPassword, validatePassword, issueAccessToken } = require('../lib/uitls')
+const {genPassword, validatePassword, issueAccessToken, validateJWT } = require('../lib/uitls')
 
 // --- POST ---
 
@@ -10,7 +10,7 @@ router.post('/signup', (req, res) => {
     username: req.body.username,
     hash: password.hash,
     salt: password.salt,
-    isAdmin: req.body.isAdmin
+    //isAdmin: req.body.isAdmin
   })
   
   newUser.save()
@@ -40,10 +40,35 @@ router.post('/login', (req, res) => {
         token: jwt 
       })
     } else {
-      res.status(401).json({ success: false, message: "usuario o contraseña incorrectos" })
+      res.status(401).json({ success: false, message: "contraseña incorrecta" })
     }
   })
-  .catch(err => console.log(err))
+  .catch(err => res.json(err))
+})
+
+//--- PUT ---
+
+router.put('/update-password', validateJWT, (req, res) => {
+  const { oldPass, newPass } = req.body
+  const { id } = req.user
+  if(oldPass === newPass) return res.status(400).json({succes: false, message: 'constraseña nueva no puede ser igual a la anterior'})
+  User.findById(id)
+  .then(data => {
+    const isValid = validatePassword(oldPass, data.hash, data.salt)
+    if(isValid){
+      const password = genPassword(newPass)
+      User.findByIdAndUpdate(id, {hash: password.hash,salt: password.salt}, {new:true, useFindAndModify:false}, (err) => {
+        if(err) return res.status(400).json(err)
+      })
+      res.status(200).json({ 
+        success: true, 
+        message: 'contraseña actualizada'
+      })
+    } else {
+      res.status(401).json({ success: false, message: "contraseña vieja incorrecta" })
+    }
+  })
+  .catch(err => {res.json(err)})
 })
 
 module.exports = router

@@ -10,4 +10,7 @@ const options = {
 }
 
 mongoose.connect(process.env.DB_URI, options)
-mongoose.connection.on('connected', () => console.log('base de datos lista y conectada'))
+mongoose.connection.on('connected', (err) => {
+  if(err) return console.log(err);
+  console.log('base de datos lista y conectada')
+})

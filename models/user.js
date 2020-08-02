@@ -4,7 +4,10 @@ const User = new Schema({
   username: String,
   hash: String,
   salt: String,
-  isAdmin: Boolean
+  isAdmin: {
+    type: Boolean,
+    default: false
+  }
 })
 
 model('User', User)
